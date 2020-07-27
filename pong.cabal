@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 7fb06412df8b126295780c49c56e5c49301db7a1deb9bc49e20ea0e78688a118
+-- hash: 5b890e580f3e66087dc4d39318c7da984e019a8d6c28b07e067553d66465e6b8
 
 name:           pong
 version:        0.1.0.0
@@ -35,6 +35,7 @@ library
   build-depends:
       base >=4.7 && <5
     , lens
+    , linear
     , sdl2
   default-language: Haskell2010
 
@@ -48,6 +49,7 @@ executable pong-exe
   build-depends:
       base >=4.7 && <5
     , lens
+    , linear
     , pong
     , sdl2
   default-language: Haskell2010
@@ -63,6 +65,7 @@ test-suite pong-test
   build-depends:
       base >=4.7 && <5
     , lens
+    , linear
     , pong
     , sdl2
   default-language: Haskell2010
