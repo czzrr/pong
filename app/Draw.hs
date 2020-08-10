@@ -20,19 +20,12 @@ drawGameState gs r = do
   clear r
   
   rendererDrawColor r $= white
-  drawPlayer leftPlayer
-  drawPlayer rightPlayer
-  drawBall ball
+  drawPlayer $ gs ^. gLeftPlayer
+  drawPlayer $ gs ^. gRightPlayer
+  drawBall $ gs ^. gBall
 
-  if intersectRect (ballToRect ball) (playerToRect leftPlayer) ||
-    intersectRect (ballToRect ball) (playerToRect rightPlayer)
-    then putStrLn "Collided!"
-    else return ()
   present r
 
-  where drawPlayer p = drawRect r (Just $ playerRect p)
-        drawBall b = drawRect r (Just $ ballRect b)
-        leftPlayer = view gLeftPlayer gs
-        rightPlayer = view gRightPlayer gs
-        ball = view gBall gs
+  where drawPlayer = drawRect r . Just . playerToRect
+        drawBall = drawRect r . Just . ballToRect
         

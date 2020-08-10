@@ -20,9 +20,9 @@ framesPerSecond = 60
 
 main :: IO ()
 main = do
-  initializeAll
-  window <- createWindow "Pong" (defaultWindow { windowInitialSize = screenDims })
-  renderer <- createRenderer window (-1) defaultRenderer
+  initializeAll -- Initialize SDL systems
+  window <- createWindow "Pong" $ defaultWindow { windowInitialSize = screenDims }
+  renderer <- createRenderer window (-1) defaultRenderer -- -1 for initializing the first driver supporting the default config
   
   mainLoop initialGameState renderer
 
@@ -30,7 +30,6 @@ mainLoop :: GameState -> Renderer -> IO ()
 mainLoop gs r = do
   drawGameState gs r
   gs' <- updateGameState gs
-
   delay (1000 `div` framesPerSecond)
 
   putStrLn $ "Score: " ++ (show $ view gScore gs')
@@ -38,6 +37,7 @@ mainLoop gs r = do
   hasQuit <- quitIfQPressed
   unless hasQuit (mainLoop gs' r)
 
+eventIsQPress :: Event -> Bool
 eventIsQPress event =
         case eventPayload event of
           KeyboardEvent keyboardEvent ->
