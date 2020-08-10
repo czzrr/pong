@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 5b890e580f3e66087dc4d39318c7da984e019a8d6c28b07e067553d66465e6b8
+-- hash: b7d71165ed2ee0e2be35ed3b92db9d96c76b2b0af9f4570dda331a8e8816f77f
 
 name:           pong
 version:        0.1.0.0
@@ -42,6 +42,8 @@ library
 executable pong-exe
   main-is: Main.hs
   other-modules:
+      Draw
+      Game
       Paths_pong
   hs-source-dirs:
       app
