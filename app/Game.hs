@@ -8,8 +8,12 @@ import SDL.Video.Renderer
 import Foreign.C.Types (CInt)
 import Control.Lens
 
+screenWidth, screenHeight :: CInt
+screenWidth = 800
+screenHeight = 600
+
 screenDims :: V2 CInt
-screenDims = V2 800 600
+screenDims = V2 screenWidth screenHeight
 
 data GameState = GameState { _gLeftPlayer :: Player,
                              _gRightPlayer :: Player,
@@ -24,8 +28,11 @@ newtype Player = Player { _pPos :: Pos }
 data Ball = Ball { _bPos :: Pos,
                    _bVel :: Vel }
 
-newtype Score = Score { _sScore :: (CInt, CInt) } deriving Show
+newtype Score = Score { _sScore :: (CInt, CInt) }
 
+instance Show Score where
+  show (Score (l, r)) = "(" ++ show l ++ ", " ++ show r ++ ")"
+  
 makeLenses ''GameState
 makeLenses ''Player
 makeLenses ''Ball
@@ -35,13 +42,13 @@ playerWidth :: CInt
 playerWidth = 10
 
 playerHeight :: CInt
-playerHeight = 40
+playerHeight = 50
 
 playerMovementSpeed :: CInt
 playerMovementSpeed = 8
 
 ballSide :: CInt
-ballSide = 10
+ballSide = 15
 
 playerToRect :: Player -> Rectangle CInt
 playerToRect p = let (x, y) = p ^. pPos
@@ -109,10 +116,11 @@ moveBall gs | leftPlayerScored         = gBall .~ initialBall $ gScore %~ incLPS
                                 intersectRect br (playerToRect $ gs ^. gRightPlayer)
         nb                  = incBallPos $ gs ^. gBall
         nbRect              = ballToRect nb
-        leftPlayerScored    = let x = ball ^. bPos . _1 in x > screenDims ^. _x
-        rightPlayerScored   = let x = ball ^. bPos . _1 in x < 0
-        ballHitsTopOrBottom = let y = ball ^. bPos . _2 in
-                                y > screenDims ^. _y - ballSide || y < 0
+        x                   = ball ^. bPos . _1
+        leftPlayerScored    = x > screenDims ^. _x
+        rightPlayerScored   = x < 0
+        ballHitsTopOrBottom = let y = ball ^. bPos . _2
+                              in y > screenDims ^. _y - ballSide || y < 0
 
 incLPScore, incRPScore :: Score -> Score
 incLPScore = (sScore . _1) %~ (+1)

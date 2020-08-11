@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: b7d71165ed2ee0e2be35ed3b92db9d96c76b2b0af9f4570dda331a8e8816f77f
+-- hash: d5a84e93e9d0fa23979c3ae3b5823fb1bf20f5a6b6ba8bc2489e944d9453b4b0
 
 name:           pong
 version:        0.1.0.0
@@ -37,6 +37,8 @@ library
     , lens
     , linear
     , sdl2
+    , sdl2-ttf
+    , text
   default-language: Haskell2010
 
 executable pong-exe
@@ -54,6 +56,8 @@ executable pong-exe
     , linear
     , pong
     , sdl2
+    , sdl2-ttf
+    , text
   default-language: Haskell2010
 
 test-suite pong-test
@@ -70,4 +74,6 @@ test-suite pong-test
     , linear
     , pong
     , sdl2
+    , sdl2-ttf
+    , text
   default-language: Haskell2010
