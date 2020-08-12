@@ -72,34 +72,63 @@ initialBall = Ball (400, 300) (5, -3)
 
 initialGameState :: GameState
 initialGameState = GameState
-  { _gLeftPlayer = Player (0, screenDims ^. _x `div` 2),
-    _gRightPlayer = Player (screenDims ^. _x - playerWidth, screenDims ^. _x `div` 2),
+  { _gLeftPlayer = Player (0, screenWidth `div` 2),
+    _gRightPlayer = Player (screenWidth - playerWidth, screenWidth `div` 2),
     _gBall = initialBall,
     _gScore = Score (0, 0) }
 
-
-
 updateGameState :: GameState -> IO GameState
 updateGameState gs = do
-  keyMap <- getKeyboardState
-  let gs'  = movePlayers keyMap gs
-      gs'' = moveBall gs'
+  gs' <- fmap (gBall %~ moveBall) . handleInput $ gs
+  let ball = moveBall (gs'' ^. gBall)
+  checkScore
+  -- if scored then reset ball and update score else moveBall
+  let score = checkScore (gs ^. gScore)
+  
+  let ball = moveBall (gs'' ^. gBall)
+
   return gs''
+  where checkScore s | leftPlayerScored = Just $ incLPScore s
+                     | rightPlayerScored = Just $ incRPScore s
+                     | otherwise = Nothing
+        where x = ball ^. bPos . _1
+              leftPlayerScored    = x > screenDims ^. _x
+              rightPlayerScored   = x < 0
 
-movePlayers :: (Scancode -> Bool) -> GameState -> GameState
-movePlayers keyMap gs = moveRightPlayer keyMap $ moveLeftPlayer keyMap gs
+        moveBall b | ballHitsPlayer = incBallPos . reverseXDir $ b
+                   | ballHitsTopOrBottom = incBallPos . reverseYDir $ b
+                   | otherwise = b
+        where ballHitsPlayer      = intersectRect br (playerToRect $ gs ^. gLeftPlayer) ||
+                                      intersectRect br (playerToRect $ gs ^. gRightPlayer)
+              br = ballToRect b
+              ballHitsTopOrBottom = let y = ball ^. bPos . _2
+                              in y > screenDims ^. _y - ballSide || y < 0
 
-moveLeftPlayer :: (Scancode -> Bool) -> GameState -> GameState
-moveLeftPlayer keyMap gs
-  | keyMap ScancodeW = gLeftPlayer %~ movePlayerUp $ gs
-  | keyMap ScancodeS = gLeftPlayer %~ movePlayerDown $ gs
-  | otherwise = gs
+handleInput :: GameState -> IO GameState
+handleInput gs = do
+  keyMap <- getKeyboardState
+  return $ gLeftPlayer %~ (handleLeftPlayer keyMap) $
+    gRightPlayer %~ (handleRightPlayer keyMap) $ gs
+  
+handleLeftPlayer :: (Scancode -> Bool) -> Player -> Player
+handleLeftPlayer keyMap p
+  | keyMap ScancodeW = movePlayerUp p
+  | keyMap ScancodeS = movePlayerDown p
+  | otherwise = p
 
-moveRightPlayer :: (Scancode -> Bool) -> GameState -> GameState
-moveRightPlayer keyMap gs
-  | keyMap ScancodeUp = gRightPlayer %~ movePlayerUp $ gs
-  | keyMap ScancodeDown = gRightPlayer %~ movePlayerDown $ gs
-  | otherwise = gs
+handleRightPlayer :: (Scancode -> Bool) -> Player -> Player
+handleRightPlayer keyMap p
+  | keyMap ScancodeUp = movePlayerUp p
+  | keyMap ScancodeDown = movePlayerDown p
+  | otherwise = p
+
+incBallPos :: Ball -> Ball
+incBallPos b = let (dx, dy) = b ^. bVel
+               in bPos %~ (\(x, y) -> (x + dx, y + dy)) $ b
+
+moveBall :: Ball -> Ball
+moveBall b | ballHitsPlayer = 
+
 
 moveBall :: GameState -> GameState
 moveBall gs | leftPlayerScored         = gBall .~ initialBall $ gScore %~ incLPScore $ gs
@@ -138,9 +167,7 @@ movePlayerDown p = (pPos . _2) %~ f $ p
                            then y
                            else y + playerMovementSpeed
 
-incBallPos :: Ball -> Ball
-incBallPos b = let (dx, dy) = b ^. bVel
-               in bPos %~ (\(x, y) -> (x + dx, y + dy)) $ b
+
 
 reverseXDir :: Ball -> Ball
 reverseXDir = (bVel . _1) %~ negate

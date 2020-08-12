@@ -39,6 +39,13 @@ mainLoop gs r = do
   hasQuit <- quitIfQPressed
   unless hasQuit (mainLoop gs' r)
 
+
+
+
+
+
+
+
 eventIsQPress :: Event -> Bool
 eventIsQPress event =
         case eventPayload event of
