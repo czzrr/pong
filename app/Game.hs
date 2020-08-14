@@ -79,30 +79,41 @@ initialGameState = GameState
 
 updateGameState :: GameState -> IO GameState
 updateGameState gs = do
-  gs' <- fmap (gBall %~ moveBall) . handleInput $ gs
-  let ball = moveBall (gs'' ^. gBall)
-  checkScore
-  -- if scored then reset ball and update score else moveBall
-  let score = checkScore (gs ^. gScore)
-  
-  let ball = moveBall (gs'' ^. gBall)
+  gs' <- fmap (handleScore . moveBall) . handleInput $ gs
+  return gs'
 
-  return gs''
-  where checkScore s | leftPlayerScored = Just $ incLPScore s
-                     | rightPlayerScored = Just $ incRPScore s
-                     | otherwise = Nothing
-        where x = ball ^. bPos . _1
-              leftPlayerScored    = x > screenDims ^. _x
-              rightPlayerScored   = x < 0
+moveBall :: GameState -> GameState
+moveBall gs | ballHitsPlayer      = if tooLate
+                                    then gs & gBall %~ (incBallPos . reverseYDir)
+                                    else gs & gBall %~ (incBallPos . reverseXDir)
+            | ballHitsTopOrBottom = gs & gBall %~ (incBallPos . reverseYDir)
+            | otherwise           = gs & gBall %~ incBallPos
+  where ballHitsPlayer      = intersectRect nbr (playerToRect lp) ||
+                                intersectRect nbr (playerToRect rp)
+        b                   = gs ^. gBall
+        nb                  = incBallPos b
+        lp                  = gs ^. gLeftPlayer
+        rp                  = gs ^. gRightPlayer
+        nbr                 = ballToRect nb
+        ballHitsTopOrBottom = let y = b ^. bPos . _2
+                              in y > screenHeight - ballSide || y < 0
+        tooLate             = let r = b ^. bPos ^. _1 + ballSide
+                                  l = r - ballSide
+                              in l < lp ^. pPos ^. _1 || r > rp ^. pPos ^. _1
+                                 
+handleScore :: GameState -> GameState
+handleScore gs
+  | leftPlayerScored  = resetBall . incLPScore $ gs
+  | rightPlayerScored = resetBall . incRPScore $ gs
+  | otherwise         = gs
+  where leftPlayerScored    = x > screenWidth + 20
+        rightPlayerScored   = x < (-40)
+        x = gs ^. gBall . bPos . _1
+        incLPScore = (gScore . sScore . _1) %~ (+1)
+        incRPScore = (gScore . sScore . _2) %~ (+1)
 
-        moveBall b | ballHitsPlayer = incBallPos . reverseXDir $ b
-                   | ballHitsTopOrBottom = incBallPos . reverseYDir $ b
-                   | otherwise = b
-        where ballHitsPlayer      = intersectRect br (playerToRect $ gs ^. gLeftPlayer) ||
-                                      intersectRect br (playerToRect $ gs ^. gRightPlayer)
-              br = ballToRect b
-              ballHitsTopOrBottom = let y = ball ^. bPos . _2
-                              in y > screenDims ^. _y - ballSide || y < 0
+resetBall :: GameState -> GameState
+resetBall = gBall .~ initialBall
 
 handleInput :: GameState -> IO GameState
 handleInput gs = do
@@ -126,35 +137,6 @@ incBallPos :: Ball -> Ball
 incBallPos b = let (dx, dy) = b ^. bVel
                in bPos %~ (\(x, y) -> (x + dx, y + dy)) $ b
 
-moveBall :: Ball -> Ball
-moveBall b | ballHitsPlayer = 
-
-
-moveBall :: GameState -> GameState
-moveBall gs | leftPlayerScored         = gBall .~ initialBall $ gScore %~ incLPScore $ gs
-            | rightPlayerScored        = gBall %~ reverseXDir $
-                                           gBall .~ initialBall $
-                                           gScore %~ incRPScore $
-                                           gs
-            | ballHitsPlayer           = gBall %~ (incBallPos . reverseXDir) $ gs
-            | ballHitsTopOrBottom      = gBall %~ (incBallPos . reverseYDir) $ gs
-            | otherwise                = gBall .~ nb $ gs
-  where ball                = view gBall gs
-        br = ballToRect ball
-        ballHitsPlayer      = intersectRect br (playerToRect $ gs ^. gLeftPlayer) ||
-                                intersectRect br (playerToRect $ gs ^. gRightPlayer)
-        nb                  = incBallPos $ gs ^. gBall
-        nbRect              = ballToRect nb
-        x                   = ball ^. bPos . _1
-        leftPlayerScored    = x > screenDims ^. _x
-        rightPlayerScored   = x < 0
-        ballHitsTopOrBottom = let y = ball ^. bPos . _2
-                              in y > screenDims ^. _y - ballSide || y < 0
-
-incLPScore, incRPScore :: Score -> Score
-incLPScore = (sScore . _1) %~ (+1)
-incRPScore = (sScore . _2) %~ (+1)
-
 movePlayerUp :: Player -> Player
 movePlayerUp p = (pPos . _2) %~ f $ p
                where f y = if y - playerMovementSpeed < 0
@@ -166,8 +148,6 @@ movePlayerDown p = (pPos . _2) %~ f $ p
                where f y = if y + playerMovementSpeed + playerHeight > screenDims ^. _2
                            then y
                            else y + playerMovementSpeed
-
-
 
 reverseXDir :: Ball -> Ball
 reverseXDir = (bVel . _1) %~ negate

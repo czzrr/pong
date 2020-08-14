@@ -29,8 +29,11 @@ main = do
   sf <- scoreFont
   mainLoop initialGameState renderer sf
 
+
+data DrawConfig 
+
 mainLoop :: GameState -> Renderer -> SDL.F.Font -> IO ()
-mainLoop gs r sf = do
+mainLoop gs r drawConfig = do
   drawGameState gs r sf
   gs' <- updateGameState gs
   delay (1000 `div` framesPerSecond)
