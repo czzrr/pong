@@ -83,13 +83,16 @@ updateGameState gs = do
   return gs'
 
 moveBall :: GameState -> GameState
-moveBall gs | ballHitsPlayer      = if tooLate
+moveBall gs | ballHitsLeftPlayer  = if tooLate
                                     then gs & gBall %~ (incBallPos . reverseYDir)
-                                    else gs & gBall %~ (incBallPos . reverseXDir)
+                                    else set gBall (bounce b lp) gs
+            | ballHitsRightPlayer = if tooLate
+                                    then gs & gBall %~ (incBallPos . reverseYDir)
+                                    else set gBall (bounce b rp) gs
             | ballHitsTopOrBottom = gs & gBall %~ (incBallPos . reverseYDir)
             | otherwise           = gs & gBall %~ incBallPos
-  where ballHitsPlayer      = intersectRect nbr (playerToRect lp) ||
-                                intersectRect nbr (playerToRect rp)
+  where ballHitsLeftPlayer  = intersectRect nbr (playerToRect lp)
+        ballHitsRightPlayer = intersectRect nbr (playerToRect rp)
         b                   = gs ^. gBall
         nb                  = incBallPos b
         lp                  = gs ^. gLeftPlayer
@@ -155,5 +158,19 @@ reverseXDir = (bVel . _1) %~ negate
 reverseYDir :: Ball -> Ball
 reverseYDir = (bVel . _2) %~ negate
 
+bounce :: Ball -> Player -> Ball
+bounce b p = incBallPos $ reverseXDir $ set bVel newVel b
+  where newVel            = scaleVel (ceiling $ cos v, ceiling $ sin v)
+        scaleVel (x', y') = (x' * k, y' * k)
+        k                 = round $ norm (V2 (fromIntegral bx) (fromIntegral by))
+        (bx, by)          = b ^. bVel
+        v                 = f r
+        r                 = (fromIntegral x) / range :: Double
+        x                 = fromIntegral $ bx - px + ballSide
+        range             = fromIntegral $ playerHeight + ballSide :: Double
+        f q               = (asin q) - pi / 2 :: Double
+        px                = p ^. pPos . _1
+                        
 
-
+toDegrees :: Floating a => a -> a
+toDegrees = (*) (180 / pi)
