@@ -39,16 +39,19 @@ makeLenses ''Ball
 makeLenses ''Score
 
 playerWidth :: CInt
-playerWidth = 10
+playerWidth = 12
 
 playerHeight :: CInt
-playerHeight = 50
+playerHeight = 60
 
 playerMovementSpeed :: CInt
 playerMovementSpeed = 8
 
 ballSide :: CInt
 ballSide = 15
+
+initBallSpeed :: Double
+initBallSpeed = 9.0
 
 playerToRect :: Player -> Rectangle CInt
 playerToRect p = let (x, y) = p ^. pPos
@@ -159,18 +162,21 @@ reverseYDir :: Ball -> Ball
 reverseYDir = (bVel . _2) %~ negate
 
 bounce :: Ball -> Player -> Ball
-bounce b p = incBallPos $ reverseXDir $ set bVel newVel b
-  where newVel            = scaleVel (ceiling $ cos v, ceiling $ sin v)
-        scaleVel (x', y') = (x' * k, y' * k)
-        k                 = round $ norm (V2 (fromIntegral bx) (fromIntegral by))
-        (bx, by)          = b ^. bVel
-        v                 = f r
-        r                 = (fromIntegral x) / range :: Double
-        x                 = fromIntegral $ bx - px + ballSide
-        range             = fromIntegral $ playerHeight + ballSide :: Double
-        f q               = (asin q) - pi / 2 :: Double
-        px                = p ^. pPos . _1
-                        
+bounce b p | r <= 0.1   = adjust (-8)
+           | r <= 0.2   = adjust (-6)
+           | r <= 0.3   = adjust (-4)
+           | r <= 0.4   = adjust (-2)
+           | r <= 0.6   = adjust 0
+           | r <= 0.7   = adjust 2
+           | r <= 0.8   = adjust 4
+           | r <= 0.9   = adjust 6
+           | otherwise  = adjust 8
+           where r            = u / (fromIntegral (ballSide + playerHeight) :: Double)
+                 u            = fromIntegral $ b ^. bPos . _2 + ballSide - p ^. pPos ^. _2
+                 adjust dy    = incBallPos . reverseXDir $
+                                 (bVel . _1) .~ (getNewDX dy) $
+                                 (bVel . _2) .~ dy $ b
+                 getNewDX dy  = (signum $ b ^. bVel . _1) *
+                                 (ceiling . sqrt $ initBallSpeed^2 - (fromIntegral dy)^2)
 
-toDegrees :: Floating a => a -> a
-toDegrees = (*) (180 / pi)
+
